@@ -147,6 +147,34 @@ io.on('connection', (socket) => {
     if (targetId) io.to(targetId).emit('webrtc:ice', { candidate });
   });
 
+  // Agent joins (Python client)
+  socket.on('agent:join', ({ code }) => {
+    const session = sessions.get(code)
+    if (!session) { socket.emit('error', 'Session not found'); return }
+    session.agentSocketId = socket.id
+    socket.join(`session:${code}`)
+    // Notify host that agent is ready
+    if (session.hostSocketId) {
+      io.to(session.hostSocketId).emit('agent:ready', { code })
+    }
+    socket.emit('agent:connected', { code, hostName: session.hostName })
+    console.log(`Agent joined session ${code}`)
+  })
+
+  // Host sends control command to agent
+  socket.on('agent:control', ({ code, command }) => {
+    const session = sessions.get(code)
+    if (!session || !session.agentSocketId) return
+    io.to(session.agentSocketId).emit('control', command)
+  })
+
+  // Agent sends screenshot back to host
+  socket.on('agent:screenshot', ({ code, data }) => {
+    const session = sessions.get(code)
+    if (!session || !session.hostSocketId) return
+    io.to(session.hostSocketId).emit('screenshot', { data })
+  })
+
   // Session end
   socket.on('session:end', ({ code }) => {
     const session = sessions.get(code);
