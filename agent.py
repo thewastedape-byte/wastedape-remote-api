@@ -126,9 +126,14 @@ def execute(cmd):
                 pyautogui.press(mapped)
 
         elif t == 'type':
-            # Type a full string
+            # Type a full string - click first to ensure focus, then type
             text = cmd.get('text', '')
-            pyautogui.typewrite(text, interval=0.03)
+            import time
+            time.sleep(0.2)
+            # Use clipboard paste for reliability
+            import subprocess
+            subprocess.run(['powershell', '-Command', f'Set-Clipboard -Value "{text}"'], capture_output=True)
+            pyautogui.hotkey('ctrl', 'v')
 
         elif t == 'hotkey':
             # e.g. {'type':'hotkey','keys':['ctrl','c']}
